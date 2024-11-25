@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Car, AlertTriangle, Activity } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 
 export default function Index() {
   const navigate = useNavigate();
