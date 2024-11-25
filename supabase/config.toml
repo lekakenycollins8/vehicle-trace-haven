@@ -1,1 +1,22 @@
 project_id = "nwrckkjeexcwrvlkulxf"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+
+[[functions]]
+name = "vehicles"
+verify_jwt = true
+
+[[functions]]
+name = "positions"
+verify_jwt = true
+
+[[functions]]
+name = "alerts"
+verify_jwt = true
+
+[[functions]]
+name = "sync-traccar"
+verify_jwt = false
