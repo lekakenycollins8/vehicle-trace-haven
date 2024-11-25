@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -31,8 +32,13 @@ serve(async (req) => {
     }
 
     if (req.method === 'POST') {
-      const { vehicleId, type, message } = await req.json();
-      
+      const body = await req.json();
+      const { vehicleId, type, message } = body;
+
+      if (!vehicleId || !type || !message) {
+        throw new Error('Missing required fields');
+      }
+
       // Verify vehicle belongs to user
       const { data: vehicle, error: vehicleError } = await supabaseClient
         .from('vehicles')
@@ -45,7 +51,7 @@ serve(async (req) => {
         throw new Error('Vehicle not found or unauthorized');
       }
 
-      const { data: alert, error } = await supabaseClient
+      const { data: alert, error: insertError } = await supabaseClient
         .from('alerts')
         .insert({
           vehicle_id: vehicleId,
@@ -55,9 +61,9 @@ serve(async (req) => {
         .select()
         .single();
 
-      if (error) {
-        console.error('Database error:', error);
-        throw error;
+      if (insertError) {
+        console.error('Database error:', insertError);
+        throw insertError;
       }
 
       return new Response(
@@ -70,24 +76,21 @@ serve(async (req) => {
     }
 
     // GET request - fetch alerts
-    const { data: alerts, error } = await supabaseClient
+    const { data: alerts, error: fetchError } = await supabaseClient
       .from('alerts')
       .select('*, vehicles!inner(*)')
       .eq('vehicles.user_id', user.id)
       .order('timestamp', { ascending: false });
 
-    if (error) {
-      console.error('Database error:', error);
-      throw error;
+    if (fetchError) {
+      console.error('Database error:', fetchError);
+      throw fetchError;
     }
 
     return new Response(
       JSON.stringify({ alerts: alerts || [] }),
       { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       }
     );
@@ -95,10 +98,13 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error.message);
     return new Response(
-      JSON.stringify({ error: error.message }), 
+      JSON.stringify({ 
+        error: error.message,
+        details: error.toString()
+      }), 
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+        status: error.status || 500,
       }
     );
   }
