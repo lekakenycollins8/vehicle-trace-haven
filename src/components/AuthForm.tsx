@@ -18,13 +18,6 @@ export function AuthForm() {
           appearance={{ theme: ThemeSupa }}
           providers={[]}
           redirectTo={window.location.origin}
-          onError={(error) => {
-            toast({
-              variant: "destructive",
-              title: "Authentication Error",
-              description: error.message,
-            });
-          }}
         />
       </div>
     </div>

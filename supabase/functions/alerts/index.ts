@@ -30,76 +30,37 @@ serve(async (req) => {
       throw new Error('Invalid token');
     }
 
-    if (req.method === 'POST') {
-      const { vehicleId, type, message } = await req.json();
-      
-      // Verify vehicle belongs to user
-      const { data: vehicle, error: vehicleError } = await supabaseClient
-        .from('vehicles')
-        .select('id')
-        .eq('id', vehicleId)
-        .eq('user_id', user.id)
-        .single();
+    // GET request - fetch alerts
+    const { data: alerts, error } = await supabaseClient
+      .from('alerts')
+      .select('*, vehicles!inner(*)')
+      .eq('vehicles.user_id', user.id)
+      .order('timestamp', { ascending: false });
 
-      if (vehicleError || !vehicle) {
-        throw new Error('Vehicle not found or unauthorized');
-      }
-
-      const { data: alert, error } = await supabaseClient
-        .from('alerts')
-        .insert({
-          vehicle_id: vehicleId,
-          type,
-          message,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return new Response(JSON.stringify({ alert }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 201,
-      });
-    } else {
-      // GET request - fetch alerts
-      const url = new URL(req.url);
-      const vehicleId = url.searchParams.get('vehicleId');
-      const type = url.searchParams.get('type');
-      const startTime = url.searchParams.get('startTime');
-      const endTime = url.searchParams.get('endTime');
-
-      let query = supabaseClient
-        .from('alerts')
-        .select('*, vehicles!inner(*)')
-        .eq('vehicles.user_id', user.id);
-
-      if (vehicleId) {
-        query = query.eq('vehicle_id', vehicleId);
-      }
-      if (type) {
-        query = query.eq('type', type);
-      }
-      if (startTime) {
-        query = query.gte('timestamp', startTime);
-      }
-      if (endTime) {
-        query = query.lte('timestamp', endTime);
-      }
-
-      const { data: alerts, error } = await query;
-      if (error) throw error;
-
-      return new Response(JSON.stringify({ alerts }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
+    if (error) {
+      console.error('Database error:', error);
+      throw error;
     }
+
+    return new Response(
+      JSON.stringify({ alerts: alerts || [] }),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        },
+        status: 200 
+      }
+    );
+
   } catch (error) {
     console.error('Error:', error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({ error: error.message }), 
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      }
+    );
   }
 });
