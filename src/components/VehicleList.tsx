@@ -13,6 +13,8 @@ interface Vehicle {
 }
 
 interface Position {
+  id: string;
+  vehicle_id: string;
   latitude: number;
   longitude: number;
   speed: number | null;
@@ -21,6 +23,7 @@ interface Position {
 
 interface Alert {
   id: string;
+  vehicle_id: string;
   type: string;
   message: string;
   timestamp: string;
