@@ -30,6 +30,45 @@ serve(async (req) => {
       throw new Error('Invalid token');
     }
 
+    if (req.method === 'POST') {
+      const { vehicleId, type, message } = await req.json();
+      
+      // Verify vehicle belongs to user
+      const { data: vehicle, error: vehicleError } = await supabaseClient
+        .from('vehicles')
+        .select('id')
+        .eq('id', vehicleId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (vehicleError || !vehicle) {
+        throw new Error('Vehicle not found or unauthorized');
+      }
+
+      const { data: alert, error } = await supabaseClient
+        .from('alerts')
+        .insert({
+          vehicle_id: vehicleId,
+          type,
+          message,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+
+      return new Response(
+        JSON.stringify({ alert }), 
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 201,
+        }
+      );
+    }
+
     // GET request - fetch alerts
     const { data: alerts, error } = await supabaseClient
       .from('alerts')
