@@ -1,9 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Car, AlertTriangle } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
 
 interface Vehicle {
   id: string;
@@ -31,23 +29,21 @@ interface Alert {
 }
 
 export function VehicleList() {
-  const { toast } = useToast();
-
   const { data: vehicles, isLoading: isLoadingVehicles } = useQuery({
     queryKey: ["vehicles"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke<{ vehicles: Vehicle[] }>("vehicles");
+      const { data, error } = await supabase.functions.invoke("vehicles");
       if (error) throw error;
-      return data.vehicles;
+      return data?.vehicles || [];
     },
   });
 
   const { data: positions } = useQuery({
     queryKey: ["positions"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke<{ positions: Position[] }>("positions");
+      const { data, error } = await supabase.functions.invoke("positions");
       if (error) throw error;
-      return data.positions;
+      return data?.positions || [];
     },
     refetchInterval: 30000, // Refresh every 30 seconds
   });
@@ -55,9 +51,9 @@ export function VehicleList() {
   const { data: alerts } = useQuery({
     queryKey: ["alerts"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke<{ alerts: Alert[] }>("alerts");
+      const { data, error } = await supabase.functions.invoke("alerts");
       if (error) throw error;
-      return data.alerts;
+      return data?.alerts || [];
     },
     refetchInterval: 30000,
   });

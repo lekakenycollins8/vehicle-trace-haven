@@ -18,6 +18,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Get auth user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('No authorization header');
@@ -31,24 +32,9 @@ serve(async (req) => {
       throw new Error('Invalid token');
     }
 
+    // Handle POST requests for creating alerts
     if (req.method === 'POST') {
-      let body;
-      try {
-        body = await req.json();
-      } catch (e) {
-        console.error('JSON parse error:', e);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Invalid JSON in request body',
-            details: e.message 
-          }), 
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400
-          }
-        );
-      }
-
+      const body = await req.json();
       const { vehicleId, type, message } = body;
 
       if (!vehicleId || !type || !message) {
@@ -64,27 +50,6 @@ serve(async (req) => {
         );
       }
 
-      // Verify vehicle belongs to user
-      const { data: vehicle, error: vehicleError } = await supabaseClient
-        .from('vehicles')
-        .select('id')
-        .eq('id', vehicleId)
-        .eq('user_id', user.id)
-        .single();
-
-      if (vehicleError || !vehicle) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Vehicle not found or unauthorized',
-            details: vehicleError?.message 
-          }), 
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 403
-          }
-        );
-      }
-
       const { data: alert, error: insertError } = await supabaseClient
         .from('alerts')
         .insert({
@@ -96,17 +61,7 @@ serve(async (req) => {
         .single();
 
       if (insertError) {
-        console.error('Database error:', insertError);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Failed to create alert',
-            details: insertError.message 
-          }), 
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500
-          }
-        );
+        throw insertError;
       }
 
       return new Response(
@@ -118,7 +73,7 @@ serve(async (req) => {
       );
     }
 
-    // GET request - fetch alerts
+    // Handle GET requests for fetching alerts
     const { data: alerts, error: fetchError } = await supabaseClient
       .from('alerts')
       .select('*, vehicles!inner(*)')
@@ -126,16 +81,7 @@ serve(async (req) => {
       .order('timestamp', { ascending: false });
 
     if (fetchError) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Failed to fetch alerts',
-          details: fetchError.message 
-        }), 
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500
-        }
-      );
+      throw fetchError;
     }
 
     return new Response(
@@ -151,7 +97,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message || 'Unknown error'
+        details: error.message 
       }), 
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
