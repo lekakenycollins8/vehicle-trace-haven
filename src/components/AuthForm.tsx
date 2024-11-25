@@ -2,8 +2,11 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { Car } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 export function AuthForm() {
+  const { toast } = useToast();
+
   return (
     <div className="w-full max-w-md mx-auto p-6">
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -14,7 +17,14 @@ export function AuthForm() {
           supabaseClient={supabase}
           appearance={{ theme: ThemeSupa }}
           providers={[]}
-          redirectTo={`${window.location.origin}/`}
+          redirectTo={window.location.origin}
+          onError={(error) => {
+            toast({
+              variant: "destructive",
+              title: "Authentication Error",
+              description: error.message,
+            });
+          }}
         />
       </div>
     </div>
