@@ -32,11 +32,36 @@ serve(async (req) => {
     }
 
     if (req.method === 'POST') {
-      const body = await req.json();
+      let body;
+      try {
+        body = await req.json();
+      } catch (e) {
+        console.error('JSON parse error:', e);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Invalid JSON in request body',
+            details: e.message 
+          }), 
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400
+          }
+        );
+      }
+
       const { vehicleId, type, message } = body;
 
       if (!vehicleId || !type || !message) {
-        throw new Error('Missing required fields');
+        return new Response(
+          JSON.stringify({ 
+            error: 'Missing required fields',
+            details: 'vehicleId, type, and message are required' 
+          }), 
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400
+          }
+        );
       }
 
       // Verify vehicle belongs to user
@@ -48,7 +73,16 @@ serve(async (req) => {
         .single();
 
       if (vehicleError || !vehicle) {
-        throw new Error('Vehicle not found or unauthorized');
+        return new Response(
+          JSON.stringify({ 
+            error: 'Vehicle not found or unauthorized',
+            details: vehicleError?.message 
+          }), 
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 403
+          }
+        );
       }
 
       const { data: alert, error: insertError } = await supabaseClient
@@ -63,7 +97,16 @@ serve(async (req) => {
 
       if (insertError) {
         console.error('Database error:', insertError);
-        throw insertError;
+        return new Response(
+          JSON.stringify({ 
+            error: 'Failed to create alert',
+            details: insertError.message 
+          }), 
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500
+          }
+        );
       }
 
       return new Response(
@@ -83,8 +126,16 @@ serve(async (req) => {
       .order('timestamp', { ascending: false });
 
     if (fetchError) {
-      console.error('Database error:', fetchError);
-      throw fetchError;
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to fetch alerts',
+          details: fetchError.message 
+        }), 
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500
+        }
+      );
     }
 
     return new Response(
@@ -96,15 +147,15 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: error.toString()
+        error: 'Internal server error',
+        details: error.message || 'Unknown error'
       }), 
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: error.status || 500,
+        status: 500,
       }
     );
   }
