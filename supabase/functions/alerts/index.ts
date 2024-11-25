@@ -47,7 +47,11 @@ serve(async (req) => {
 
       const { data: alert, error } = await supabaseClient
         .from('alerts')
-        .insert([{ vehicle_id: vehicleId, type, message }])
+        .insert({
+          vehicle_id: vehicleId,
+          type,
+          message,
+        })
         .select()
         .single();
 
@@ -62,18 +66,26 @@ serve(async (req) => {
       const url = new URL(req.url);
       const vehicleId = url.searchParams.get('vehicleId');
       const type = url.searchParams.get('type');
-      const startDate = url.searchParams.get('startDate');
-      const endDate = url.searchParams.get('endDate');
+      const startTime = url.searchParams.get('startTime');
+      const endTime = url.searchParams.get('endTime');
 
       let query = supabaseClient
         .from('alerts')
         .select('*, vehicles!inner(*)')
         .eq('vehicles.user_id', user.id);
 
-      if (vehicleId) query = query.eq('vehicle_id', vehicleId);
-      if (type) query = query.eq('type', type);
-      if (startDate) query = query.gte('timestamp', startDate);
-      if (endDate) query = query.lte('timestamp', endDate);
+      if (vehicleId) {
+        query = query.eq('vehicle_id', vehicleId);
+      }
+      if (type) {
+        query = query.eq('type', type);
+      }
+      if (startTime) {
+        query = query.gte('timestamp', startTime);
+      }
+      if (endTime) {
+        query = query.lte('timestamp', endTime);
+      }
 
       const { data: alerts, error } = await query;
       if (error) throw error;

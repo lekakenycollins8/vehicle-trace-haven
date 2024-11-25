@@ -7,19 +7,16 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get auth user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('No authorization header');
@@ -33,7 +30,6 @@ serve(async (req) => {
       throw new Error('Invalid token');
     }
 
-    // Get vehicles for the authenticated user
     const { data: vehicles, error } = await supabaseClient
       .from('vehicles')
       .select('*')
