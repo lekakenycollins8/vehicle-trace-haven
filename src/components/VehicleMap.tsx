@@ -12,15 +12,38 @@ export function VehicleMap() {
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
 
-  const { data: positions } = useQuery({
+  const { data: positions, refetch } = useQuery({
     queryKey: ['positions'],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("positions");
       if (error) throw error;
       return data?.positions || [];
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000, // Fallback refresh every 30 seconds
   });
+
+  // Subscribe to real-time updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('positions_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'positions'
+        },
+        () => {
+          // Refetch positions when we receive any change
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch]);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
