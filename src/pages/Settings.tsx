@@ -34,16 +34,18 @@ export default function Settings() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
-      if (data) {
-        setFormData(prev => ({
-          ...prev,
-          full_name: data.full_name || "",
-          username: data.username || "",
-        }));
+    enabled: !!session?.user?.id,
+    meta: {
+      onSuccess: (data: any) => {
+        if (data) {
+          setFormData(prev => ({
+            ...prev,
+            full_name: data.full_name || "",
+            username: data.username || "",
+          }));
+        }
       }
-    },
-    enabled: !!session?.user?.id
+    }
   });
 
   const updateProfile = useMutation({
@@ -65,7 +67,7 @@ export default function Settings() {
         description: "Your profile has been updated successfully.",
       });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to update settings. Please try again.",
