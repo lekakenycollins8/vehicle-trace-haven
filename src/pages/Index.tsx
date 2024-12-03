@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Car, AlertTriangle, Activity } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { VehicleMap } from "@/components/VehicleMap";
 
 export default function Index() {
   const navigate = useNavigate();
@@ -92,14 +93,12 @@ export default function Index() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
+        <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Map View</CardTitle>
+            <CardTitle>Vehicle Locations</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">
-              Map integration coming soon...
-            </p>
+            <VehicleMap />
           </CardContent>
         </Card>
 
