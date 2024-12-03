@@ -13,6 +13,7 @@ serve(async (req) => {
   }
 
   try {
+    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -34,8 +35,7 @@ serve(async (req) => {
 
     // Handle POST requests for creating alerts
     if (req.method === 'POST') {
-      const body = await req.json();
-      const { vehicleId, type, message } = body;
+      const { vehicleId, type, message } = await req.json();
 
       if (!vehicleId || !type || !message) {
         return new Response(
@@ -76,14 +76,16 @@ serve(async (req) => {
     // Handle GET requests for fetching alerts
     const { data: alerts, error: fetchError } = await supabaseClient
       .from('alerts')
-      .select('*, vehicles!inner(*)')
-      .eq('vehicles.user_id', user.id)
+      .select('*')
+      .eq('resolved', false)
       .order('timestamp', { ascending: false });
 
     if (fetchError) {
+      console.error('Error fetching alerts:', fetchError);
       throw fetchError;
     }
 
+    // Ensure we have data to return, even if it's an empty array
     return new Response(
       JSON.stringify({ alerts: alerts || [] }),
       { 
@@ -93,7 +95,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in alerts function:', error);
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
